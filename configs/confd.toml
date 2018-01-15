@@ -1,0 +1,5 @@
+backend = "etcd"
+watch = true
+nodes = [
+  "http://etcd:2379"
+]

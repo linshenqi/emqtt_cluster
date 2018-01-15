@@ -1,0 +1,51 @@
+version: '2'
+services:
+    haproxy:
+        image: linshenqi/haproxy_confd
+        ports:
+          - "1080:1080"
+          - "11883:1883"
+          - "18883:8883"
+        links:
+          - emqttd
+          - etcd
+        volumes:
+          - /data/emqtt/haproxy/conf:/usr/local/etc/haproxy
+          - /data/emqtt/haproxy/ssl:/etc/ssl
+          - /data/emqtt/haproxy/log:/var/log
+          - /data/emqtt/haproxy/log_conf/syslog.conf:/etc/syslog.conf:ro
+          - /data/emqtt/confd/confd.toml:/etc/confd/confd.toml:ro
+          - /data/emqtt/confd/conf.d:/etc/confd/conf.d
+          - /data/emqtt/confd/templates:/etc/confd/templates
+        command: sh -c "syslogd -R 127.0.0.1 ; haproxy -D -f /usr/local/etc/haproxy/haproxy.cfg -p /var/run/haproxy.pid ; confd"
+        depends_on:
+          - emqttd
+
+    emqttd:
+        image: linshenqi/emqtt:2.3.3
+        ports:
+          - "1883"
+          - "18083"
+        environment:
+          - EMQ_CLUSTER__DISCOVERY=etcd
+          - EMQ_CLUSTER__ETCD__SERVER=http:\/\/172.17.0.1:2379
+          - EMQ_CLUSTER__ETCD__NODE_TTL=1m
+        depends_on:
+          - etcd
+        links:
+          - etcd
+
+    etcd:
+        image: quay.io/coreos/etcd
+        ports:
+          - "2379:2379"
+          - "2380:2380"
+          - "4001:4001"
+        environment:
+          - ETCD_NAME=etcd1
+          - ETCD_DATA_DIR=/etcd
+          - ETCD_INITIAL_ADVERTISE_PEER_URLS=http://172.17.0.1:2380
+          - ETCD_LISTEN_PEER_URLS=http://0.0.0.0:2380
+          - ETCD_ADVERTISE_CLIENT_URLS=http://172.17.0.1:2379
+          - ETCD_LISTEN_CLIENT_URLS=http://0.0.0.0:2379
+          - ETCD_INITIAL_CLUSTER=etcd1=http://172.17.0.1:2380
