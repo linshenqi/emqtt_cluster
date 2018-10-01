@@ -4,8 +4,8 @@ services:
         image: linshenqi/haproxy_confd
         ports:
           - "1080:1080"
-          - "11883:1883"
-          - "18883:8883"
+          - "1883:1883"
+          - "8883:8883"
         links:
           - emqttd
           - etcd
@@ -17,6 +17,7 @@ services:
           - /data/emqtt/confd/confd.toml:/etc/confd/confd.toml:ro
           - /data/emqtt/confd/conf.d:/etc/confd/conf.d
           - /data/emqtt/confd/templates:/etc/confd/templates
+        restart: "always"
         command: sh -c "syslogd -R 127.0.0.1 ; haproxy -D -f /usr/local/etc/haproxy/haproxy.cfg -p /var/run/haproxy.pid ; confd"
         depends_on:
           - emqttd
@@ -30,6 +31,22 @@ services:
           - EMQ_CLUSTER__DISCOVERY=etcd
           - EMQ_CLUSTER__ETCD__SERVER=http:\/\/172.17.0.1:2379
           - EMQ_CLUSTER__ETCD__NODE_TTL=1m
+
+          # acl配置
+          # - EMQ_LOADED_PLUGINS="emq_recon,emq_modules,emq_retainer,emq_dashboard,emq_auth_http"
+          #
+          # - EMQ_AUTH__HTTP__AUTH_REQ=http:\/\/172.17.0.1:8080\/api\/v2\/devices-mqtt-auth
+          # - EMQ_AUTH__HTTP__AUTH_REQ__METHOD=post
+          # - EMQ_AUTH__HTTP__AUTH_REQ__PARAMS=username=%u,password=%P
+          #
+          # - EMQ_AUTH__HTTP__SUPER_REQ=http:\/\/172.17.0.1:8080\/api\/v2\/devices-mqtt-superuser
+          # - EMQ_AUTH__HTTP__SUPER_REQ__METHOD=post
+          # - EMQ_AUTH__HTTP__SUPER_REQ__PARAMS=clientid=%u,password=%P
+          #
+          # - EMQ_AUTH__HTTP__ACL_REQ=http:\/\/172.17.0.1:8080\/api\/v2\/devices-mqtt-acl
+          # - EMQ_AUTH__HTTP__ACL_REQ__METHOD=get
+          # - EMQ_AUTH__HTTP__ACL_REQ__PARAMS=access=%A,username=%u,topic=%t
+        restart: "always"
         depends_on:
           - etcd
         links:
@@ -49,3 +66,4 @@ services:
           - ETCD_ADVERTISE_CLIENT_URLS=http://172.17.0.1:2379
           - ETCD_LISTEN_CLIENT_URLS=http://0.0.0.0:2379
           - ETCD_INITIAL_CLUSTER=etcd1=http://172.17.0.1:2380
+        restart: "always"
